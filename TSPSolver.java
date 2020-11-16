@@ -1,19 +1,25 @@
-import java.io.*;
+package copy;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
+//import java.io.*;
+//import java.util.ArrayList;
+//import java.util.Iterator;
+//import java.util.LinkedList;
+
 
 public class TSPSolver {
 
-    private static double temperature = 3;
-    private static double coolingRate = 0.99;
 
     public static ArrayList<City> readFile(String filename) {
+
         ArrayList<City> cities = new ArrayList<>();
         try {
             BufferedReader in = new BufferedReader(new FileReader(filename));
             String line = null;
-            while((line = in.readLine()) != null) {
+            while ((line = in.readLine()) != null) {
                 String[] blocks = line.trim().split("\\s+");
                 if (blocks.length == 3) {
                     City c = new City();
@@ -34,13 +40,14 @@ public class TSPSolver {
             City ci = cities.get(i);
             for (int j = i; j < cities.size(); j++) {
                 City cj = cities.get(j);
-                City.distances[i][j] = City.distances[j][i] = Math.sqrt(Math.pow((ci.x - cj.x),2) + Math.pow((ci.y - cj.y),2));
+                City.distances[i][j] = City.distances[j][i] = Math.sqrt(Math.pow((ci.x - cj.x), 2) + Math.pow((ci.y - cj.y), 2));
             }
         }
         return cities;
     }
 
     public static ArrayList<City> solveProblem(ArrayList<City> citiesToVisit) {
+
         ArrayList<City> routine = new ArrayList<City>();
         City start = null;
         City current = null;
@@ -82,7 +89,7 @@ public class TSPSolver {
         for (int i = 0; i < routine.size(); i++) {
             if (i != routine.size() - 1) {
                 System.out.print(routine.get(i).city + "->");
-                totalDistance += routine.get(i).distance(routine.get(i+1));
+                totalDistance += routine.get(i).distance(routine.get(i + 1));
             } else {
                 System.out.println(routine.get(i).city);
             }
@@ -96,7 +103,7 @@ public class TSPSolver {
     public static double evaluateRoutine(ArrayList<City> routine) {
         double totalDistance = 0.0;
         for (int i = 0; i < routine.size() - 1; i++) {
-            totalDistance += routine.get(i).distance(routine.get(i+1));
+            totalDistance += routine.get(i).distance(routine.get(i + 1));
         }
         return totalDistance;
     }
@@ -106,14 +113,24 @@ public class TSPSolver {
      */
     private static void moveCity(ArrayList<City> routine, int from, int to) {
         // provide your code here.
-        if (from < to) {
-            routine.add(to, routine.get(from));
-            routine.remove(from);
-        } else {
-            City swap = routine.get(from);
-            routine.remove(from);
-            routine.add(to, swap);
+        City temp = routine.get(from);
+        if (from > to) {
+            for (int i = from; i > to; i--) {
+                routine.set(i, routine.get(i - 1));
+            }
+            routine.set(to, temp);
+        } else if (from < to - 1) {
+            for (int i = from; i < to - 1; i++) {
+                routine.set(i, routine.get(i + 1));
+            }
+            routine.set(to - 1, temp);
         }
+    }
+
+    private static ArrayList<City> moveCityReturn(ArrayList<City> routine, int from, int to) {
+        ArrayList<City> temp = new ArrayList<>(routine);
+        moveCity(temp, from, to);
+        return temp;
     }
 
     /*
@@ -122,62 +139,30 @@ public class TSPSolver {
         As a result, a positive value means that the relocation of city results in routine improvement;
         a negative value means that the relocation leads to worse routine. A zero value means same quality.
      */
+
+
     public static double evalMove(ArrayList<City> routine, int from, int to) {
         // your implementation goes here
-        // Unchanged case
-        if (from == to || from == to - 1) {
-            return 0.0;
-        }
-        // Inefficient naive approach for other special cases
-        if (from == 0 || to == 0 || from == routine.size() - 1) {
-            double oldDistance, newDistance;
-            if (from < to) {
-                oldDistance = evaluateRoutine(routine);
-                moveCity(routine, from, to);
-                newDistance = evaluateRoutine(routine);
-                moveCity(routine, to - 1, from);
-            } else {
-                oldDistance = evaluateRoutine(routine);
-                moveCity(routine, from, to);
-                newDistance = evaluateRoutine(routine);
-                moveCity(routine, to, from + 1);
-            }
-            return oldDistance - newDistance;
-        }
-        // Normal cases: only calculate the distance between affected elements
-        double delta = 0.0;
-        if (from < to) {
-            delta += routine.get(from).distance(routine.get(from - 1));
-            delta += routine.get(from).distance(routine.get(from + 1));
-            delta += routine.get(to - 1).distance(routine.get(to));
-            moveCity(routine, from, to);
-            delta -= routine.get(from).distance(routine.get(from - 1));
-            delta -= routine.get(to - 1).distance(routine.get(to - 2));
-            delta -= routine.get(to - 1).distance(routine.get(to));
-            moveCity(routine, to - 1, from);
+
+        if (from - to == 1) {
+            double oldRoutine = routine.get(from).distance(routine.get(from + 1)) + routine.get(to).distance(routine.get(to - 1));
+            double newRoutine = routine.get(from).distance(routine.get(from - 2)) + routine.get(to).distance(routine.get(from + 1));
+            return oldRoutine - newRoutine;
+        } else if (from - to != -1 && from != to) {
+            double oldRoutine = routine.get(from).distance(routine.get(from + 1)) + routine.get(from).distance(routine.get(from - 1))
+                    + routine.get(to).distance(routine.get(to - 1));
+            double newRoutine = routine.get(from - 1).distance(routine.get(from + 1)) +
+                    routine.get(from).distance(routine.get(to)) + routine.get(from).distance(routine.get(to - 1));
+            return oldRoutine - newRoutine;
         } else {
-            delta += routine.get(from).distance(routine.get(from - 1));
-            delta += routine.get(from).distance(routine.get(from + 1));
-            delta += routine.get(to).distance(routine.get(to - 1));
-            moveCity(routine, from, to);
-            delta -= routine.get(from).distance(routine.get(from + 1));
-            delta -= routine.get(to).distance(routine.get(to - 1));
-            delta -= routine.get(to).distance(routine.get(to + 1));
-            moveCity(routine, to, from + 1);
+            return 0;
         }
-        return delta;
     }
 
-    /*
-        This function iterate through all possible moving positions of cities.
-        if a city move is found to lead to shorter travelling distance, that move action
-        will be applied and the function will return true.
-        If there is no good city move found, it will return false.
-     */
     public static boolean moveFirstImprove(ArrayList<City> routine) {
         // your implementation goes here
         for (int i = 1; i < routine.size() - 1; i++) {
-            for (int j = i + 1; j < routine.size(); j++) {
+            for (int j = i + 2; j < routine.size() - 1; j++) {
                 double diff = evalMove(routine, i, j);
                 if (diff - 0.00001 > 0) { // I really mean diff > 0 here
                     moveCity(routine, i, j);
@@ -197,15 +182,45 @@ public class TSPSolver {
         return false;
     }
 
-    /*
-        Swaps the city at index "index1" and index "index2" inside the routine
-     */
-    public static void swapCity(ArrayList<City> routine, int index1, int index2) {
+    public static boolean moveImprove(ArrayList<City> routine) {
         // your implementation goes here
-        City swap = routine.get(index1);
-        routine.set(index1, routine.get(index2));
-        routine.set(index2, swap);
+        for (int i = 1; i < routine.size() - 1; i++) {
+            for (int j = i + 2; j < routine.size() - 1; j++) {
+                double diff = evalMove(routine, i, j);
+                if (diff - 0.00001 > 0) { // I really mean diff > 0 here
+                    moveCity(routine, i, j);
+                }
+            }
+        }
+        for (int i = routine.size() - 2; i > 0; i--) {
+            for (int j = i - 1; j > 0; j--) {
+                double diff = evalMove(routine, i, j);
+                if (diff - 0.00001 > 0) { // I really mean diff > 0 here
+                    moveCity(routine, i, j);
+                }
+            }
+        }
+        return false;
     }
+
+
+    public static void swapCity(ArrayList<City> routine, int index1, int index2) {
+
+        City temp = routine.get(index1);
+        routine.set(index1, routine.get(index2));
+        routine.set(index2, temp);
+        // your implementation goes here
+    }
+
+    public static ArrayList<City> swapCityReturn(ArrayList<City> routine, int index1, int index2) {
+        ArrayList<City> arrayList = new ArrayList<>(routine);
+        City temp = arrayList.get(index1);
+        arrayList.set(index1, routine.get(index2));
+        arrayList.set(index2, temp);
+        return arrayList;
+        // your implementation goes here
+    }
+
 
     /*
         Can you improve the performance of this method?
@@ -213,36 +228,29 @@ public class TSPSolver {
         but you are NOT allowed to change its method signature (parameters, name, return type).
      */
     public static double evalSwap(ArrayList<City> routine, int index1, int index2) {
-        // Check for invalid swapping: swapping start/destination
-        // Inefficient naive approach for special cases
-        if (index1 == 0 || index2 == 0 || index1 == routine.size() - 1 || index2 == routine.size() - 1) {
-            double oldDistance = evaluateRoutine(routine);
-            swapCity(routine, index1, index2);
-            double newDistance = evaluateRoutine(routine);
-            swapCity(routine, index1, index2);
+        int a = index1;
+        int b = index2;
+        index1 = Math.min(a, b);
+        index2 = Math.max(a, b);
+        if (index2 - index1 == 1) {
+            double oldDistance = routine.get(index1).distance(routine.get(index1 - 1)) + routine.get(index2).distance(routine.get(index2 + 1));
+            double newDistance = routine.get(index1).distance(routine.get(index1 + 2)) + routine.get(index2).distance(routine.get(index2 - 2));
             return oldDistance - newDistance;
         }
-
-        // Normal cases: only calculate the distance between affected elements
-        double delta = 0.0;
-        delta += routine.get(index1).distance(routine.get(index1 - 1));
-        delta += routine.get(index1).distance(routine.get(index1 + 1));
-        delta += routine.get(index2).distance(routine.get(index2 - 1));
-        delta += routine.get(index2).distance(routine.get(index2 + 1));
-        swapCity(routine, index1, index2); // swap
-        delta -= routine.get(index1).distance(routine.get(index1 - 1));
-        delta -= routine.get(index1).distance(routine.get(index1 + 1));
-        delta -= routine.get(index2).distance(routine.get(index2 - 1));
-        delta -= routine.get(index2).distance(routine.get(index2 + 1));
-        swapCity(routine, index1, index2); // swap back
-        return delta;
+        double oldDistance =
+                routine.get(index1).distance(routine.get(index1 + 1)) + routine.get(index1).distance(routine.get(index1 - 1))
+                        + routine.get(index2).distance(routine.get(index2 + 1)) + routine.get(index2).distance(routine.get(index2 - 1));
+        double newDistance =
+                routine.get(index2).distance(routine.get(index1 + 1)) + routine.get(index2).distance(routine.get(index1 - 1))
+                        + routine.get(index1).distance(routine.get(index2 + 1)) + routine.get(index1).distance(routine.get(index2 - 1));
+        return oldDistance - newDistance;
     }
 
     /*
         This function iterate through all possible swapping positions of cities.
-        if a city swap is found to lead to shorter travelling distance, that swap action
-        will be applied and the function will return true.
-        If there is no good city swap found, it will return false.
+            if a city swap is found to lead to shorter travelling distance, that swap action
+            will be applied and the function will return true.
+            If there is no good city swap found, it will return false.
      */
     public static boolean swapFirstImprove(ArrayList<City> routine) {
         for (int i = 1; i < routine.size() - 1; i++) {
@@ -257,247 +265,128 @@ public class TSPSolver {
         return false;
     }
 
-    /*
-        This method iterates from left to right through the given routine.
-        Every time a city move is found to lead to shorter travelling distance,
-        that move action will be applied, and the search continues until
-        the loop finishes.
-     */
-    public static void keepMoving(ArrayList<City> routine) {
-        for (int i = 1; i < routine.size(); i++) {
-            for (int j = i + 1; j < routine.size(); j++) {
-                double diff = evalMove(routine, i, j);
+    public static void reverseCity(ArrayList<City> routine, int index1, int index2) {
+        int length = index2 - index1;
+        for (int i = 0; i <= length / 2; i++) {
+            swapCity(routine, index1 + i, index2 - i);
+        }
+    }
+
+
+    public static double evalReverse(ArrayList<City> routine, int index1, int index2) {
+        int begin = Math.min(index1, index2);
+        int end = Math.max(index1, index2);
+        double oldRoutine = routine.get(begin).distance(routine.get(begin - 1)) + routine.get(end).distance(routine.get(end + 1));
+        double newRoutine = routine.get(end).distance(routine.get(begin - 1)) + routine.get(begin).distance(routine.get(end + 1));
+        return oldRoutine - newRoutine;
+    }
+
+    public static void reverseImprove(ArrayList<City> routine) {
+        for (int step = 3; step < routine.size() - 2; step++) {
+            for (int i = 1; i < routine.size() - step - 1; i++) {
+                double diff = evalReverse(routine, i, i + step);
                 if (diff - 0.00001 > 0) { // I really mean diff > 0 here
-                    moveCity(routine, i, j);
+                    reverseCity(routine, i, i + step);
                 }
             }
         }
     }
 
-    /*
-        This method iterates from right to left through the given routine.
-        Every time a city move is found to lead to shorter travelling distance,
-        that move action will be applied, and the search continues until
-        the loop finishes.
-     */
-    public static void keepMovingReverse(ArrayList<City> routine) {
-        for (int i = routine.size() - 2; i > 0; i--) {
-            for (int j = i; j > 0; j--) {
-                double diff = evalMove(routine, i, j);
-                if (diff - 0.00001 > 0) { // I really mean diff > 0 here
-                    moveCity(routine, i, j);
-                }
-            }
-        }
-    }
-
-    /*
-        This method applies 2-opt algorithm to the routine.
-     */
-    public static void twoOpt(ArrayList<City> routine) {
-        int from, to;
-        from = (int) (Math.random() * (routine.size() - 2) + 1);
-        to = (int) (Math.random() * (routine.size() - 2) + 1);
-        if (from > to) {
-            int swap = from;
-            from = to;
-            to = swap;
-        }
-        double delta = routine.get(from).distance(routine.get(from - 1));
-        delta += routine.get(to).distance(routine.get(to + 1));
-        delta -= routine.get(from).distance(routine.get(to + 1));
-        delta -= routine.get(to).distance(routine.get(from - 1));
-        if (delta - 0.00001 > 0) {
-            City[] swap = new City[to - from + 1];
-            for (int i = 0; i < swap.length; i++) {
-                swap[i] = routine.get(from + i);
-            }
-            for (int i = 0; i < swap.length; i++) {
-                routine.set(to - i, swap[i]);
-            }
-        }
-    }
-
-    /*
-        This method initializes the parameters for simulated annealing.
-     */
-    public static void initSA() {
-        temperature = 3;
-        coolingRate = 0.99;
-    }
-
-    /*
-        This method applies 2-opt algorithm with simulated annealing.
-     */
-    public static void twoOptWithSA(ArrayList<City> routine) {
-        int from, to;
-        from = (int) (Math.random() * (routine.size() - 2) + 1);
-        to = (int) (Math.random() * (routine.size() - 2) + 1);
-        if (from > to) {
-            int swap = from;
-            from = to;
-            to = swap;
-        }
-        double delta = routine.get(from).distance(routine.get(from - 1));
-        delta += routine.get(to).distance(routine.get(to + 1));
-        delta -= routine.get(from).distance(routine.get(to + 1));
-        delta -= routine.get(to).distance(routine.get(from - 1));
-        if (delta - 0.00001 > 0 || (temperature > 0.3 && Math.pow(Math.E, delta / temperature) > Math.random())) {
-            City[] swap = new City[to - from + 1];
-            for (int i = 0; i < swap.length; i++) {
-                swap[i] = routine.get(from + i);
-            }
-            for (int i = 0; i < swap.length; i++) {
-                routine.set(to - i, swap[i]);
-            }
-        }
-    }
-
-    /*
-        This method aims to improve the solution path resulted from solveProblem().
-     */
     public static ArrayList<City> improveRoutine(ArrayList<City> routine) {
         // Can you improve this simple algorithm a bit?
-
-        // Algorithm overview:
-        // ((Stage 1 2-opt + SA) -> (Stage 1 hybrid improve) ->
-        // (Stage 2 2-opt + SA) -> (Stage 2 hybrid improve)) * repeat 10 times =>
-        // best result as solution
-
-        // Set the timer
         long start = System.currentTimeMillis();
-        // Set the loop counter for 2-opt algorithm with simulated annealing
-        int loopTOSA = (routine.size() * 100);
-        // Set the loop counter for hybrid improve algorithm
-        int loopHybrid = (routine.size() * routine.size() / 2);
+        ArrayList<City> bestRoutine = new ArrayList<>(stableImprove(routine));
+        double baseLine = evaluateRoutine(routine);
+        ArrayList<City> improvedRoutine = perturbationImprove(bestRoutine, baseLine, start);
+        return improvedRoutine;
 
-        // Stores original routine and best routine for compare and improve
-        ArrayList<City> originalRoutine = new ArrayList<>(routine);
+    }
+
+    public static ArrayList<City> perturbationImprove(ArrayList<City> routine, double min, long start) {
+        int st;
+        int ed;
+        int begin;
+        int end;
+        double temp;
+        double current = System.currentTimeMillis();
         ArrayList<City> bestRoutine = new ArrayList<>(routine);
-        double bestDistance = evaluateRoutine(bestRoutine);
-
-        // Repeat 10 times
-        for (int numRepeat = 0; numRepeat < 10; numRepeat++) {
-            routine = new ArrayList<>(originalRoutine);
-
-            // Stage 1 2-opt + simulated annealing
-            initSA();
-            while (TSPSolver.swapFirstImprove(routine)) {
-                if (System.currentTimeMillis() - start > 290000) break;
-                for (int i = 0; i < loopTOSA; i++) {
-                    twoOptWithSA(routine);
-                }
-                temperature *= coolingRate;
+        while (current - start <= 297000) {
+            //Use random move perturbation to improve the routine
+            if (System.currentTimeMillis() - start > 297000) {
+                return bestRoutine;
             }
-
-            // Stage 1 hybrid improve
-            keepMoving(routine);
-            keepMovingReverse(routine);
-            while (swapFirstImprove(routine)) {
-                if (System.currentTimeMillis() - start > 290000) break;
-                for (int i = 0; i < loopHybrid; i++) {
-                    twoOpt(routine);
-                }
-                keepMoving(routine);
-                keepMovingReverse(routine);
-            }
-
-            // Stage 2 simulated annealing
-            initSA();
-            temperature = 1.0;
-            if (System.currentTimeMillis() - start > 290000) break;
-            for (int i = 0; i < loopTOSA; i++) {
-                twoOptWithSA(routine);
-            }
-            temperature *= coolingRate;
-            while (TSPSolver.swapFirstImprove(routine)) {
-                if (System.currentTimeMillis() - start > 290000) break;
-                for (int i = 0; i < loopTOSA; i++) {
-                    twoOptWithSA(routine);
-                }
-                temperature *= coolingRate;
-            }
-
-            // Stage 2 hybrid improve
-            keepMoving(routine);
-            keepMovingReverse(routine);
-            while (swapFirstImprove(routine)) {
-                if (System.currentTimeMillis() - start > 290000) break;
-                for (int i = 0; i < loopHybrid; i++) {
-                    twoOpt(routine);
-                }
-                keepMoving(routine);
-                keepMovingReverse(routine);
-            }
-
-            // Compares current solution with previous best solution
-            double thisDistance = evaluateRoutine(routine);
-            if (bestDistance - thisDistance > 0.00001) {
+            st = (int) (Math.random() * routine.size());
+            ed = (int) (Math.random() * routine.size());
+            begin = Math.max(Math.min(st, ed), 1);
+            end = Math.min(Math.max(st, ed), routine.size() - 1);
+            routine = moveCityReturn(bestRoutine, begin, end);
+            stableImprove(routine);
+            temp = evaluateRoutine(routine);
+            if (temp < min) {
                 bestRoutine = new ArrayList<>(routine);
-                bestDistance = thisDistance;
+                min = temp;
             }
+            //Use random swap perturbation to improve the routine
+            if (System.currentTimeMillis() - start > 297000) {
+                return bestRoutine;
+            }
+            st = (int) (Math.random() * routine.size());
+            ed = (int) (Math.random() * routine.size());
+            begin = Math.max(Math.min(st, ed), 1);
+            end = Math.min(Math.max(st, ed), routine.size() - 2);
+            routine = swapCityReturn(bestRoutine, begin, end);
+            stableImprove(routine);
+            temp = evaluateRoutine(routine);
+            if (temp < min) {
+                bestRoutine = new ArrayList<>(routine);
+                min = temp;
+            }
+            current = System.currentTimeMillis();
         }
-
-        // Return the best solution
         return bestRoutine;
     }
 
-    // TODO: REMOVE DEBUG METHOD
-    public static void debug(ArrayList<City> routine, int from, int to) {
-        moveCity(routine, from, to);
-    }
-
-    public static ArrayList<City> originalImprove(ArrayList<City> routine) {
-        swapFirstImprove(routine);
-        moveFirstImprove(routine);
-        return routine;
-    }
-
-    public static void randomSwapping(ArrayList<City> routine) {
-        int index1, index2;
-        int coeff = routine.size() - 3;
-        index1 = (int) (Math.random() * coeff + 1);
-        index2 = (int) (Math.random() * coeff + 1);
-        double diff = evalSwap(routine, index1, index2);
-        if (diff - 0.00001 > 0) { // I really mean diff > 0 here
-            swapCity(routine, index1, index2);
-        }
-    }
-
-    public static void randomMoving(ArrayList<City> routine) {
-        int index1, index2;
-        int coeff = routine.size() - 3;
-        index1 = (int) (Math.random() * coeff + 1);
-        index2 = (int) (Math.random() * coeff + 1);
-        double diff = evalMove(routine, index1, index2);
-        if (diff - 0.00001 > 0) { // I really mean diff > 0 here
-            moveCity(routine, index1, index2);
-        }
-    }
-
-    public static void shuffle(ArrayList<City> routine) {
-        City swap;
-        for (int i = 0; i + (routine.size() / 2) < routine.size() - 1; i++) {
-            swap = routine.get(i);
-            routine.set(i, routine.get(i + (routine.size() / 2)));
-            routine.set(i + (routine.size() / 2), swap);
-        }
-    }
-
-    /*
-        This method iterates from left to right through the given routine.
-        Every time a city swap is found to lead to shorter travelling distance,
-        that swap action will be applied, and the search continues until
-        the loop finishes.
-     */
-    public static void keepSwapping(ArrayList<City> routine) {
-        for (int i = 1; i < routine.size() - 1; i++) {
-            for (int j = i + 1; j < routine.size() - 1; j++) {
-                double diff = evalSwap(routine, i, j);
-                if (diff - 0.00001 > 0) { // I really mean diff > 0 here
-                    swapCity(routine, i, j);
+    public static ArrayList<City> stableImprove(ArrayList<City> routine) {
+        int num = 60;
+        double finalResult = evaluateRoutine(routine);
+        double result = 0;
+        for (int j = 0; j < num; j++) {
+            for (int i = 0; i < num; i++) {
+                reverseImprove(routine);
+                double temp = evaluateRoutine(routine);
+                if (result == temp) {
+                    break;
+                } else {
+                    result = temp;
                 }
             }
+            //use method swapFirstImprove to improve the routine
+            for (int i = 0; i < num; i++) {
+                swapFirstImprove(routine);
+                double temp = evaluateRoutine(routine);
+                if (result == temp) {
+                    break;
+                } else {
+                    result = temp;
+                }
+            }
+            //use method moveImprove to improve the routine
+            for (int i = 0; i < num; i++) {
+                moveImprove(routine);
+                double temp = evaluateRoutine(routine);
+                if (result == temp) {
+                    break;
+                } else {
+                    result = temp;
+                }
+            }
+            double temp = evaluateRoutine(routine);
+            if (finalResult == temp) {
+                break;
+            } else {
+                finalResult = temp;
+            }
         }
+        return routine;
     }
 }
