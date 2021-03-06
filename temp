@@ -1,5 +1,4 @@
 #include <stdio.h>
-#define EOF '\r'
 /* prototypes of functions, first one compresses input while second expand input */
 void compress();
 void expand();
@@ -9,8 +8,11 @@ int main(void)
 	/* read the input command */
 	char command;
 	scanf("%c",&command);
+	
 	if (command=='C')
 	{
+	    scanf("%c",&command);
+
 		compress();
 	}
 	else if (command == 'E')
@@ -29,6 +31,7 @@ void compress()
 
 	while(scanf("%c",&current)!=EOF)
 	{
+		    
 		if(current==old)
 		{
 			printf("%c",current);
@@ -36,20 +39,24 @@ void compress()
 			while(1)
 			{
 				scanf("%c",&current);
+				
 				if (current!=old||current==EOF)
 				{
-					printf("%d*\n", count);
+					printf("%d*", count);
 					printf("%c",current);
 					old = current;
+					
 					break;
 				}
 				count++;				
 			}
 		}
 		else
-		{
-			printf("%c",current);
+		{   
+		    printf("%c",current);
 			old = current;
+		    
+			
 		}
 	}
 
